@@ -87,7 +87,7 @@ with torch.no_grad():
         xy_t = torch.cat([x_t, y_t], dim=0).t()
         R = torch.randperm(50)
         context_index = R[:5]
-        mean, log_std = model(xy_t, context_index, R)
+        mean, log_std = model(xy_t, context_index, torch.arange(50))
         std = 0.1 + 0.9 * torch.nn.functional.softplus(log_std)
         
         plt.plot(xy_t[:, 0].numpy(), xy_t[:, 1].numpy(), c='c')
