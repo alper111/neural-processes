@@ -17,6 +17,9 @@ def plot_gp(mu, cov, X, X_train=None, Y_train=None, samples=[]):
         plt.plot(X_train, Y_train, 'rx')
     plt.legend()
 
+def sample_gaussian(std, b, x):
+    return torch.exp(-x**2/(2*(std**2))) / (np.sqrt(2*np.pi)*std) + b
+    
 def get_parameter_count(model):
     total_num = 0
     for p in model.parameters():
