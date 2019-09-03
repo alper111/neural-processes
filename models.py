@@ -49,21 +49,17 @@ class CNP(torch.nn.Module):
             self.decoder.append(torch.nn.Linear(hidden_dim, out_dim))
             self.decoder = torch.nn.Sequential(*self.decoder)
         
-    def forward(self, x, ctx_index, tgt_index):
-        # need to make forward module to predict
-        # with varying number of mu and std
-
+    def forward(self, context, query):
+        query = query.view(query.shape[0], -1)
         # encode
-        h = self.encoder(x[ctx_index])
+        h = self.encoder(context)
         # aggregate
         h = h.mean(dim=0)
-        h = torch.stack([h]*(tgt_index.shape[0]), dim=0)
-        r = torch.cat([h, x[tgt_index, 0].view(-1, 1)], dim=1)
+        h = torch.stack([h]*(query.shape[0]), dim=0)
+        r = torch.cat([h, query], dim=1)
         # predict
-        pred = self.decoder(r)
-        mean = pred[:, 0]
-        log_std = pred[:, 1]
-        return mean, log_std
+        out = self.decoder(r)
+        return out
 
 
 class ANP(torch.nn.Module):
@@ -98,17 +94,17 @@ class ANP(torch.nn.Module):
         self.attention = torch.nn.MultiheadAttention(embed_dim=hidden_dim, num_heads=nhead)
 
 
-    def forward(self, x, ctx_index, tgt_index):
+    def forward(self, context, query):
+        query = query.view(query.shape[0], -1)
         # encode
-        h = self.encoder(x[ctx_index])
+        h = self.encoder(context)
         # aggregate
-        q_t = self.projector(x[tgt_index, 0].view(-1, 1))
-        h, _ = self.attention(query=q_t.view(-1, 1, h.shape[1]), key=h, value=h)
+        q_t = self.projector(query)
+        q_t = q_t.unsqueeze(1)
+        h, _ = self.attention(query=q_t, key=h, value=h)
         h = h.squeeze(1)
         # predict
         pred = self.decoder(h)
-        mean = pred[:, 0]
-        log_std = pred[:, 1]
-        return mean, log_std
+        return pred
 
         
