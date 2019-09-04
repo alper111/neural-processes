@@ -10,31 +10,31 @@ else:
     device = torch.device("cpu")
 
 IN_DIM = 2
-HIDDEN_DIM = 128
+HIDDEN_DIM = 256
 QUERY_DIM = 1
 OUTPUT_DIM = 2
 
-# model = models.CNP(
+model = models.CNP(
+    in_dim=IN_DIM,
+    hidden_dim=HIDDEN_DIM,
+    query_dim=QUERY_DIM,
+    out_dim=OUTPUT_DIM,
+    en_layer=2,
+    dec_layer=2
+)
+
+# model = models.ANP(
 #     in_dim=IN_DIM,
 #     hidden_dim=HIDDEN_DIM,
 #     query_dim=QUERY_DIM,
 #     out_dim=OUTPUT_DIM,
 #     en_layer=3,
-#     dec_layer=3
+#     dec_layer=3,
+#     nhead=32
 # )
 
-model = models.ANP(
-    in_dim=IN_DIM,
-    hidden_dim=HIDDEN_DIM,
-    query_dim=QUERY_DIM,
-    out_dim=OUTPUT_DIM,
-    en_layer=3,
-    dec_layer=3,
-    nhead=4
-)
-
 model.to(device)
-model.load_state_dict(torch.load("save/model.pth"))
+model.load_state_dict(torch.load("out/deneme/model.ckpt"))
 
 X = np.load("data/egg_demonstrations.npy")
 L = X.shape[1]
