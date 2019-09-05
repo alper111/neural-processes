@@ -106,5 +106,3 @@ class ANP(torch.nn.Module):
         # predict
         pred = self.decoder(h)
         return pred
-
-        
