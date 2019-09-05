@@ -19,6 +19,12 @@ def plot_gp(mu, cov, X, X_train=None, Y_train=None, samples=[]):
 
 def sample_gaussian(std, b, x):
     return torch.exp(-x**2/(2*(std**2))) / (np.sqrt(2*np.pi)*std) + b
+
+def sample_tanh(x):
+    if np.random.rand() < 0.5:
+        return torch.tanh(x)
+    else:
+        return -torch.tanh(x)
     
 def get_parameter_count(model):
     total_num = 0
