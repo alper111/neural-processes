@@ -52,11 +52,13 @@ L = X.shape[1]
 
 with torch.no_grad():
     model.eval().cpu()
-    test_set = [(0.35, -0.4), (-0.35, 0.4), (0.3, -0.3), (-0.3, 0.3)]
+    test_set = [(0.2, -0.6), (-0.2, 0.6)]
     for i in range(5):
         sample = X[np.random.randint(0, X.shape[0])]
-        x_t = torch.linspace(0., 1., L).view(L, -1)
-        y_t = torch.tensor(sample, dtype=torch.float).view(L, -1)
+        # x_t = torch.linspace(0., 1., L).view(L, -1)
+        x_t = torch.linspace(-5., 5., L).view(L, -1)
+        # y_t = torch.tensor(sample, dtype=torch.float).view(L, -1)
+        y_t = utils.sample_tanh(x_t)
         xy_t = torch.cat([x_t, y_t], dim=1)
         R = torch.randperm(L)
         context_index = [0, 100, -1]
@@ -65,11 +67,11 @@ with torch.no_grad():
         log_std = out[:, 1]
         std = torch.nn.functional.softplus(log_std)
         
-        plt.plot(np.linspace(0., 1., L), y_t.squeeze(0).numpy(), c="c")
-        for i in range(X.shape[0]):
-            plt.plot(np.linspace(0., 1., L), X[i], c="b")
-        plt.plot(np.linspace(0, 1, L), mean.numpy(), c='r')
-        plt.fill_between(np.linspace(0, 1, L), mean-std, mean+std, facecolor='r', alpha=0.1)
+        plt.plot(np.linspace(-5., 5., L), y_t.squeeze(0).numpy(), c="c")
+        # for i in range(X.shape[0]):
+        #     plt.plot(np.linspace(0., 1., L), X[i], c="b")
+        plt.plot(np.linspace(-5, 5, L), mean.numpy(), c='r')
+        plt.fill_between(np.linspace(-5, 5, L), mean-std, mean+std, facecolor='r', alpha=0.1)
         plt.scatter(xy_t[context_index, 0], xy_t[context_index, 1], marker='x', c='g')
         plt.title("Training samples")
         plt.show()
@@ -77,21 +79,30 @@ with torch.no_grad():
     for i in range(5):
         ind = np.random.randint(0, len(test_set))
         sample = utils.sample_gaussian(test_set[ind][0], test_set[ind][1], torch.linspace(-0.5, 0.5, L))
-        x_t = torch.linspace(0., 1., L).view(L, -1)
-        y_t = sample.clone().view(L, -1)
+        # x_t = torch.linspace(0., 1., L).view(L, -1)
+        x_t = torch.linspace(-5., 5., L).view(L, -1)
+        # y_t = sample.clone().view(L, -1)
+        y_t = utils.sample_tanh(x_t)
         xy_t = torch.cat([x_t, y_t], dim=1)
         R = torch.randperm(L)
         context_index = [0, 100, -1]
+        if np.random.rand() < 0.5:
+            xy_t[0, 1] = -1
+            xy_t[-1, 1] = -1
+        else:
+            xy_t[0, 1] = 1
+            xy_t[-1, 1] = 1        
+        
         out = model(xy_t[context_index], x_t)
         mean = out[:, 0]
         log_std = out[:, 1]
         std = torch.nn.functional.softplus(log_std)
         
-        plt.plot(np.linspace(0., 1., L), y_t.squeeze(0).numpy(), c="c")
-        for i in range(X.shape[0]):
-            plt.plot(np.linspace(0., 1., L), X[i], c="b")
-        plt.plot(np.linspace(0, 1, L), mean.numpy(), c='r')
-        plt.fill_between(np.linspace(0, 1, L), mean-std, mean+std, facecolor='r', alpha=0.1)
+        plt.plot(np.linspace(-5., 5., L), y_t.squeeze(0).numpy(), c="c")
+        # for i in range(X.shape[0]):
+        #     plt.plot(np.linspace(0., 1., L), X[i], c="b")
+        plt.plot(np.linspace(-5, 5, L), mean.numpy(), c='r')
+        plt.fill_between(np.linspace(-5, 5, L), mean-std, mean+std, facecolor='r', alpha=0.1)
         plt.scatter(xy_t[context_index, 0], xy_t[context_index, 1], marker='x', c='g')
         plt.title("Test samples")
         plt.show()

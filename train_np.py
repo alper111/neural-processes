@@ -87,15 +87,16 @@ avg_loss = 0.0
 for i in range(args.iter):
     optimizer.zero_grad()
     # sample = np.random.multivariate_normal(mu_p, cov_p, 1)
-    sample = X[np.random.randint(0, X.shape[0])]
-    x_t = torch.linspace(0., 1., L, device=device).view(L, -1)
-    y_t = torch.tensor(sample, dtype=torch.float, device=device).view(L, -1)
+    # sample = X[np.random.randint(0, X.shape[0])]
+    x_t = torch.linspace(-5., 5., L, device=device).view(L, -1)
+    y_t = utils.sample_tanh(x_t)
+    # y_t = torch.tensor(sample, dtype=torch.float, device=device).view(L, -1)
     xy_t = torch.cat([x_t, y_t], dim=1)
 
     R = torch.randperm(L)
-    num_of_context = torch.randint(1, 6, (1,))
-    # num_of_target = torch.randint(2, 10, (1,))
-    num_of_target = 1
+    num_of_context = torch.randint(3, 10, (1,))
+    num_of_target = torch.randint(2, 10, (1,))
+    # num_of_target = 1
     context_index = R[:num_of_context]
     # predict both context and target. they say it's better
     target_index = R[:(num_of_context+num_of_target)]
