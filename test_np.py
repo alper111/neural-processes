@@ -1,40 +1,51 @@
+import argparse
 import torch
 import models
 import utils
 import matplotlib.pyplot as plt
 import numpy as np
 
+parser = argparse.ArgumentParser(description="test a neural process.")
+parser.add_argument("-in_dim", help="input dimension.", type=int, required=True)
+parser.add_argument("-hidden_dim", help="hidden dimension.", type=int, required=True)
+parser.add_argument("-query_dim", help="query dimension.", type=int, required=True)
+parser.add_argument("-out_dim", help="output dimension.", type=int, required=True)
+parser.add_argument("-en_layer", help="number of encoder layers.", type=int, required=True)
+parser.add_argument("-de_layer", help="number of decoder layers.", type=int, required=True)
+parser.add_argument("-nhead", help="number of attention heads.", type=int)
+parser.add_argument("-out", help="output path.", type=str, required=True)
+parser.add_argument("-att", help="whether to use self-attention.", type=int, default=1)
+
+args = parser.parse_args()
+
 if torch.cuda.is_available():
     device = torch.device("cuda:0")
 else:
     device = torch.device("cpu")
 
-IN_DIM = 2
-HIDDEN_DIM = 256
-QUERY_DIM = 1
-OUTPUT_DIM = 2
+if args.att == 1:
+    model = models.ANP(
+    in_dim=args.in_dim,
+    hidden_dim=args.hidden_dim,
+    query_dim=args.query_dim,
+    out_dim=args.out_dim,
+    en_layer=args.en_layer,
+    dec_layer=args.de_layer,
+    nhead=args.nhead
+    )
+else:
+    model = models.CNP(
+        in_dim=args.in_dim,
+        hidden_dim=args.hidden_dim,
+        query_dim=args.query_dim,
+        out_dim=args.out_dim,
+        en_layer=args.en_layer,
+        dec_layer=args.de_layer
+    )
 
-model = models.CNP(
-    in_dim=IN_DIM,
-    hidden_dim=HIDDEN_DIM,
-    query_dim=QUERY_DIM,
-    out_dim=OUTPUT_DIM,
-    en_layer=2,
-    dec_layer=2
-)
-
-# model = models.ANP(
-#     in_dim=IN_DIM,
-#     hidden_dim=HIDDEN_DIM,
-#     query_dim=QUERY_DIM,
-#     out_dim=OUTPUT_DIM,
-#     en_layer=3,
-#     dec_layer=3,
-#     nhead=32
-# )
 
 model.to(device)
-model.load_state_dict(torch.load("out/deneme/model.ckpt"))
+model.load_state_dict(torch.load(args.out))
 
 X = np.load("data/egg_demonstrations.npy")
 L = X.shape[1]
@@ -43,10 +54,7 @@ with torch.no_grad():
     model.eval().cpu()
     test_set = [(0.35, -0.4), (-0.35, 0.4), (0.3, -0.3), (-0.3, 0.3)]
     for i in range(5):
-        # sample = np.random.multivariate_normal(mu_p, cov_p, 1)
         sample = X[np.random.randint(0, X.shape[0])]
-        # ind = np.random.randint(0, len(test_set))
-        # sample = utils.sample_gaussian(test_set[ind][0], test_set[ind][1], torch.linspace(-0.5, 0.5, L))
         x_t = torch.linspace(0., 1., L).view(L, -1)
         y_t = torch.tensor(sample, dtype=torch.float).view(L, -1)
         xy_t = torch.cat([x_t, y_t], dim=1)
@@ -55,7 +63,7 @@ with torch.no_grad():
         out = model(xy_t[context_index], x_t)
         mean = out[:, 0]
         log_std = out[:, 1]
-        std = 0.1 + 0.9 * torch.nn.functional.softplus(log_std)
+        std = torch.nn.functional.softplus(log_std)
         
         plt.plot(np.linspace(0., 1., L), y_t.squeeze(0).numpy(), c="c")
         for i in range(X.shape[0]):
@@ -67,8 +75,6 @@ with torch.no_grad():
         plt.show()
 
     for i in range(5):
-        # sample = np.random.multivariate_normal(mu_p, cov_p, 1)
-        # sample = X[np.random.randint(0, X.shape[0])]
         ind = np.random.randint(0, len(test_set))
         sample = utils.sample_gaussian(test_set[ind][0], test_set[ind][1], torch.linspace(-0.5, 0.5, L))
         x_t = torch.linspace(0., 1., L).view(L, -1)
@@ -79,7 +85,7 @@ with torch.no_grad():
         out = model(xy_t[context_index], x_t)
         mean = out[:, 0]
         log_std = out[:, 1]
-        std = 0.1 + 0.9 * torch.nn.functional.softplus(log_std)
+        std = torch.nn.functional.softplus(log_std)
         
         plt.plot(np.linspace(0., 1., L), y_t.squeeze(0).numpy(), c="c")
         for i in range(X.shape[0]):
