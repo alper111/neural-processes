@@ -87,10 +87,10 @@ avg_loss = 0.0
 for i in range(args.iter):
     optimizer.zero_grad()
     # sample = np.random.multivariate_normal(mu_p, cov_p, 1)
-    # sample = X[np.random.randint(0, X.shape[0])]
-    x_t = torch.linspace(-5., 5., L, device=device).view(L, -1)
-    y_t = utils.sample_tanh(x_t)
-    # y_t = torch.tensor(sample, dtype=torch.float, device=device).view(L, -1)
+    sample = X[np.random.randint(0, X.shape[0])]
+    x_t = torch.linspace(0., 1., L, device=device).view(L, -1)
+    # y_t = utils.sample_tanh(x_t)
+    y_t = torch.tensor(sample, dtype=torch.float, device=device).view(L, -1)
     xy_t = torch.cat([x_t, y_t], dim=1)
 
     R = torch.randperm(L)
@@ -101,7 +101,7 @@ for i in range(args.iter):
     # predict both context and target. they say it's better
     target_index = R[:(num_of_context+num_of_target)]
 
-    out = model(xy_t[context_index], x_t[target_index])
+    out = model(context=xy_t[context_index], key=x_t[context_index], query=x_t[target_index])
     mu = out[:, 0]
     log_std = out[:, 1]
 
@@ -117,5 +117,5 @@ for i in range(args.iter):
     if (i+1) % 1000 == 0:
         print("iter: %d, loss: %.4f" % (i+1, avg_loss*1e-3))
         avg_loss = 0.0
-
-torch.save(model.eval().cpu().state_dict(), "model.ckpt")
+        torch.save(model.eval().cpu().state_dict(), "model.ckpt")
+        model.train().to(device)

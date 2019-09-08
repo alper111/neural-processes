@@ -94,15 +94,19 @@ class ANP(torch.nn.Module):
         self.attention = torch.nn.MultiheadAttention(embed_dim=hidden_dim, num_heads=nhead)
 
 
-    def forward(self, context, query):
+    def forward(self, context, key, query):
         query = query.view(query.shape[0], -1)
+        key = key.view(key.shape[0], -1)
         # encode
         h = self.encoder(context)
+        h.unsqueeze_(1)
         # aggregate
         q_t = self.projector(query)
-        q_t = q_t.unsqueeze(1)
-        h, _ = self.attention(query=q_t, key=h, value=h)
-        h = h.squeeze(1)
+        k_t = self.projector(key)
+        q_t.unsqueeze_(1)
+        k_t.unsqueeze_(1)
+        h, _ = self.attention(query=q_t, key=k_t, value=h)
+        h.squeeze_(1)
         # predict
         pred = self.decoder(h)
         return pred
