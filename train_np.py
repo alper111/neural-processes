@@ -105,7 +105,6 @@ for i in range(args.iter):
     mu = out[:, 0]
     log_std = out[:, 1]
 
-    # instead of predicting \sigma, predict its log for stability. cuz non-positive \sigma is pointless.
     std = torch.nn.functional.softplus(log_std)
     dists = torch.distributions.Normal(mu, std)
     # calculate loss
