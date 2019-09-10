@@ -49,7 +49,7 @@ class CNP(torch.nn.Module):
             self.decoder.append(torch.nn.Linear(hidden_dim, out_dim))
             self.decoder = torch.nn.Sequential(*self.decoder)
         
-    def forward(self, context, query):
+    def forward(self, context, query, key=None):
         query = query.view(query.shape[0], -1)
         # encode
         h = self.encoder(context)

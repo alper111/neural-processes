@@ -81,13 +81,13 @@ optimizer = torch.optim.Adam(
 # mu_p = np.zeros(x.shape[0])
 # cov_p = models.kernel(x, x)
 X = np.load("../../data/egg_demonstrations.npy")
-L = X.shape[1]
 
 avg_loss = 0.0
 for i in range(args.iter):
     optimizer.zero_grad()
     # sample = np.random.multivariate_normal(mu_p, cov_p, 1)
     sample = X[np.random.randint(0, X.shape[0])]
+    L = sample.shape[-1]
     x_t = torch.linspace(0., 1., L, device=device).view(L, -1)
     # y_t = utils.sample_tanh(x_t)
     y_t = torch.tensor(sample, dtype=torch.float, device=device).view(L, -1)
