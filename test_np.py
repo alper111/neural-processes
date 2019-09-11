@@ -52,7 +52,7 @@ L = X.shape[1]
 
 with torch.no_grad():
     model.eval().cpu()
-    test_set = [(0.35, -0.5), (-0.35, 0.5), (0.3, -0.55), (-0.3, 0.55)]
+    test_set = [(0.35, -0.4), (-0.35, 0.4), (0.3, -0.35), (-0.3, 0.35)]
     for i in range(5):
         x_t = torch.linspace(0., 1., L).view(L, -1)
         sample = X[np.random.randint(0, X.shape[0])]
