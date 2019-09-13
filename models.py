@@ -110,3 +110,64 @@ class ANP(torch.nn.Module):
         # predict
         pred = self.decoder(h)
         return pred
+
+class ANPv2(torch.nn.Module):
+    def __init__(self, in_dim, hidden_dim, query_dim, out_dim, en_layer, dec_layer, nhead):
+        super(ANPv2, self).__init__()
+        if en_layer == 1:
+            self.encoder = torch.nn.Linear(in_dim, hidden_dim)
+        else:
+            self.encoder = [
+                torch.nn.Linear(in_dim, hidden_dim),
+                torch.nn.ReLU()
+            ]
+            for i in range(en_layer-2):
+                self.encoder.append(torch.nn.Linear(hidden_dim, hidden_dim))
+                self.encoder.append(torch.nn.ReLU())
+            self.encoder.append(torch.nn.Linear(hidden_dim, hidden_dim))
+            self.encoder = torch.nn.Sequential(*self.encoder)
+        
+        if dec_layer == 1:
+            self.decoder = torch.nn.Linear(hidden_dim, out_dim)
+        else:
+            self.decoder = [
+                torch.nn.Linear(hidden_dim, hidden_dim),
+                torch.nn.ReLU()
+            ]
+            for i in range(dec_layer-2):
+                self.decoder.append(torch.nn.Linear(hidden_dim, hidden_dim))
+                self.decoder.append(torch.nn.ReLU())
+            self.decoder.append(torch.nn.Linear(hidden_dim, out_dim))
+            self.decoder = torch.nn.Sequential(*self.decoder)
+        
+        self.key_mlp = torch.nn.Sequential(
+            torch.nn.Linear(query_dim, hidden_dim),
+            torch.nn.ReLU(),
+            torch.nn.Linear(hidden_dim, hidden_dim)
+        )
+
+        self.query_mlp = torch.nn.Sequential(
+            torch.nn.Linear(query_dim, hidden_dim),
+            torch.nn.ReLU(),
+            torch.nn.Linear(hidden_dim, hidden_dim)
+        )
+
+        self.attention = torch.nn.MultiheadAttention(embed_dim=hidden_dim, num_heads=nhead)
+
+
+    def forward(self, context, key, query):
+        query = query.view(query.shape[0], -1)
+        key = key.view(key.shape[0], -1)
+        # encode
+        h = self.encoder(context)
+        h.unsqueeze_(1)
+        # aggregate
+        q_t = self.query_mlp(query)
+        k_t = self.key_mlp(key)
+        q_t.unsqueeze_(1)
+        k_t.unsqueeze_(1)
+        h, _ = self.attention(query=q_t, key=k_t, value=h)
+        h.squeeze_(1)
+        # predict
+        pred = self.decoder(h)
+        return pred

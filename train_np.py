@@ -45,7 +45,7 @@ print("date: %s" % time.asctime(time.localtime(time.time())))
 print("date: %s" % time.asctime(time.localtime(time.time())), file=(open("args.txt", "a")))
 
 if args.att:
-    model = models.ANP(
+    model = models.ANPv2(
     in_dim=args.in_dim,
     hidden_dim=args.hidden_dim,
     query_dim=args.query_dim,
@@ -76,39 +76,34 @@ optimizer = torch.optim.Adam(
     amsgrad=True
 )
 
-# sample from a GP
-# x = np.linspace(-5., 5.).reshape(-1, 1)
-# mu_p = np.zeros(x.shape[0])
-# cov_p = models.kernel(x, x)
-X = np.load("../../data/egg_demonstrations.npy")
+# X = torch.load("../../data/egg.pth")
+X = torch.load("../../data/taskparam.pth")
+query_dims = [0, 7, 8]
+target_dims = [1, 2, 3, 4, 5, 6]
 
 avg_loss = 0.0
 for i in range(args.iter):
     optimizer.zero_grad()
-    # sample = np.random.multivariate_normal(mu_p, cov_p, 1)
-    sample = X[np.random.randint(0, X.shape[0])]
-    L = sample.shape[-1]
-    x_t = torch.linspace(0., 1., L, device=device).view(L, -1)
-    # y_t = utils.sample_tanh(x_t)
-    y_t = torch.tensor(sample, dtype=torch.float, device=device).view(L, -1)
-    xy_t = torch.cat([x_t, y_t], dim=1)
+    sample = X[np.random.randint(0, X.shape[0])].to(device)
+    L = (sample[:, 0]-1).abs().argmin() + 1
+    sample = sample[:L]
 
     R = torch.randperm(L)
-    num_of_context = torch.randint(3, 10, (1,))
+    num_of_context = torch.randint(1, 8, (1,))
     num_of_target = torch.randint(2, 10, (1,))
-    # num_of_target = 1
     context_index = R[:num_of_context]
+    # context_index = [0]
     # predict both context and target. they say it's better
     target_index = R[:(num_of_context+num_of_target)]
 
-    out = model(context=xy_t[context_index], key=x_t[context_index], query=x_t[target_index])
-    mu = out[:, 0]
-    log_std = out[:, 1]
+    out = model(context=sample[context_index, :], key=sample[context_index][:, query_dims], query=sample[target_index][:, query_dims])
+    mu = out[:, :6]
+    log_std = out[:, 6:]
 
     std = torch.nn.functional.softplus(log_std)
     dists = torch.distributions.Normal(mu, std)
     # calculate loss
-    loss = -dists.log_prob(y_t[target_index].squeeze(1)).mean()
+    loss = -dists.log_prob(sample[target_index][:, target_dims]).mean()
     loss.backward()
     optimizer.step()
     
