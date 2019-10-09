@@ -68,7 +68,7 @@ with torch.no_grad():
             for j in range(X.shape[0]):
                 plt.plot(X[j, :, 0], X[j, :, target_dims], c="b")
             plt.plot(sample[:, 0], sample[:, target_dims], c="c")
-            plt.plot(sample[:, 0], mean[:, s].numpy(), c='r')
+            plt.plot(sample[:, 0], mean[:, 0].numpy(), c='r')
             plt.fill_between(sample[:, 0], mean[:, 0]-std[:, 0], mean[:, 0]+std[:, 0], facecolor='r', alpha=0.1)
             plt.scatter(sample[context_index, 0], sample[context_index, target_dims], marker='x', c='g')
             plt.title("Training samples")
