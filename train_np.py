@@ -1,6 +1,7 @@
 import argparse
 import os
 import time
+import pickle
 import torch
 import models
 import utils
@@ -17,8 +18,9 @@ parser.add_argument("-de_layer", help="number of decoder layers.", type=int, req
 parser.add_argument("-nhead", help="number of attention heads.", type=int)
 parser.add_argument("-iter", help="number of iterations.", type=int, required=True)
 parser.add_argument("-lr", help="learning rate.", type=float, default=1e-3)
+parser.add_argument("-data", help="data path.", type=str, required=True)
 parser.add_argument("-out", help="output path.", type=str, required=True)
-parser.add_argument("-seed", help="seed number", type=float, default=None)
+parser.add_argument("-seed", help="seed number", type=int, default=None)
 parser.add_argument("-att", help="whether to use self-attention.", type=int, default=1)
 
 args = parser.parse_args()
@@ -31,8 +33,14 @@ else:
     device = torch.device("cpu")
 
 if args.seed is not None:
-    np.random.seed(seed)
-    torch.manual_seed(seed)
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+
+f = open(args.data, "rb")
+data_dict = pickle.load(f)
+X = data_dict["data"]
+query_dims = data_dict["query_dims"]
+target_dims = data_dict["target_dims"]
 
 if not os.path.exists(args.out):
     os.makedirs(args.out)
@@ -46,25 +54,23 @@ print("date: %s" % time.asctime(time.localtime(time.time())), file=(open("args.t
 
 if args.att:
     model = models.ANPv2(
-    in_dim=args.in_dim,
+    in_dim=len(query_dims)+len(target_dims),
     hidden_dim=args.hidden_dim,
-    query_dim=args.query_dim,
-    out_dim=args.out_dim,
+    query_dim=len(query_dims),
+    out_dim=len(target_dims)*2,
     en_layer=args.en_layer,
     dec_layer=args.de_layer,
     nhead=args.nhead
     )
 else:
     model = models.CNP(
-        in_dim=args.in_dim,
+        in_dim=len(query_dims)+len(target_dims),
         hidden_dim=args.hidden_dim,
-        query_dim=args.query_dim,
-        out_dim=args.out_dim,
+        query_dim=len(query_dims),
+        out_dim=len(target_dims)*2,
         en_layer=args.en_layer,
         dec_layer=args.de_layer
     )
-
-
 
 model.to(device)
 print(model)
@@ -76,29 +82,19 @@ optimizer = torch.optim.Adam(
     amsgrad=True
 )
 
-# X = torch.load("../../data/egg.pth")
-X = torch.load("../../data/taskparam.pth")
-query_dims = [0, 7, 8]
-target_dims = [1, 2, 3, 4, 5, 6]
-
 avg_loss = 0.0
 for i in range(args.iter):
     optimizer.zero_grad()
     sample = X[np.random.randint(0, X.shape[0])].to(device)
-    L = (sample[:, 0]-1).abs().argmin() + 1
-    sample = sample[:L]
-
-    R = torch.randperm(L)
+    R = torch.randperm(sample.shape[0])
     num_of_context = torch.randint(1, 8, (1,))
     num_of_target = torch.randint(2, 10, (1,))
     context_index = R[:num_of_context]
-    # context_index = [0]
-    # predict both context and target. they say it's better
     target_index = R[:(num_of_context+num_of_target)]
 
     out = model(context=sample[context_index, :], key=sample[context_index][:, query_dims], query=sample[target_index][:, query_dims])
-    mu = out[:, :6]
-    log_std = out[:, 6:]
+    mu = out[:, :len(target_dims)]
+    log_std = out[:, len(target_dims):]
 
     std = torch.nn.functional.softplus(log_std)
     dists = torch.distributions.Normal(mu, std)
