@@ -9,10 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 parser = argparse.ArgumentParser(description="train a neural process.")
-parser.add_argument("-in_dim", help="input dimension.", type=int, required=True)
 parser.add_argument("-hidden_dim", help="hidden dimension.", type=int, required=True)
-parser.add_argument("-query_dim", help="query dimension.", type=int, required=True)
-parser.add_argument("-out_dim", help="output dimension.", type=int, required=True)
 parser.add_argument("-en_layer", help="number of encoder layers.", type=int, required=True)
 parser.add_argument("-de_layer", help="number of decoder layers.", type=int, required=True)
 parser.add_argument("-nhead", help="number of attention heads.", type=int)
